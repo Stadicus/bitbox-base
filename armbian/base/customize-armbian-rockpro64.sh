@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Copyright 2019 Shift Cryptosecurity AG, Switzerland.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,13 +16,13 @@
 # -----------------------------------------------------------------------------
 
 # BitBox Base: build script for Armbian base image
-# 
+#
 # repository:    https://github.com/digitalbitbox/bitbox-base
 # documentation: https://digitalbitbox.github.io/bitbox-base/
-# 
+#
 # This script is used when building the BitBox Base Armbian image, but can also
-# be run on a fresh Armbian install to configure and run various services. 
-# This currently includes the Bitcoin Core, c-lightning, electrs, Prometheus, 
+# be run on a fresh Armbian install to configure and run various services.
+# This currently includes the Bitcoin Core, c-lightning, electrs, Prometheus,
 # Grafana, NGINX and an mDNS responder to broadcast to the local subnet.
 # ------------------------------------------------------------------------------
 
@@ -139,7 +139,7 @@ BASE_BUILD_LIGHTNINGD=${BASE_BUILD_LIGHTNINGD:-"true"}
 BASE_OVERLAYROOT=${BASE_OVERLAYROOT:-"false"}
 
 # HDMI dashboard only enabled if image is built to support it
-if [[ "${BASE_HDMI_BUILD}" != "true" ]]; then 
+if [[ "${BASE_HDMI_BUILD}" != "true" ]]; then
   echo "WARN: HDMI dashboard is disabled. It cannot be enabled without BASE_HDMI_BUILD option set to 'true'."
   BASE_DASHBOARD_HDMI_ENABLED="false"
 fi
@@ -179,7 +179,7 @@ export HOME=/root
 # - user 'root' is disabled from logging in with password
 # - user 'base' has sudo rights and is used for low-level user access
 # - user 'hdmi' has minimal access rights
-# - other users are setup as system user, with disabled login 
+# - other users are setup as system user, with disabled login
 
 # add groups
 addgroup --system bitcoin
@@ -189,7 +189,7 @@ addgroup --system system
 BASE_ROOTPW=${BASE_ROOTPW:-$(< /dev/urandom tr -dc A-Z-a-z-0-9 | head -c32)}
 echo "root:${BASE_ROOTPW}" | chpasswd
 
-if [ "$BASE_SSH_ROOT_LOGIN" != "true" ]; then 
+if [ "$BASE_SSH_ROOT_LOGIN" != "true" ]; then
   passwd -l root
 fi
 
@@ -219,7 +219,7 @@ if [ "$BASE_SSH_ROOT_LOGIN" != "true" ]; then
   sed -i '/PERMITROOTLOGIN/Ic\PermitRootLogin no' /etc/ssh/sshd_config
 fi
 
-# add service users 
+# add service users
 adduser --system --ingroup bitcoin --disabled-login --home /mnt/ssd/bitcoin/      bitcoin || true
 usermod -a -G system bitcoin
 
@@ -240,7 +240,7 @@ chsh -s /bin/bash hdmi
 
 # remove bitcoin user home on rootfs (must be on SSD)
 # also revoke direct write access for service users to local directory
-if ! mountpoint /mnt/ssd -q; then 
+if ! mountpoint /mnt/ssd -q; then
   rm -rf /mnt/ssd/bitcoin/
   chmod u+rwx,g-rwx,o-rwx /mnt/ssd
 fi
@@ -257,12 +257,12 @@ apt -y --fix-broken install
 if [[ "${BASE_BUILDMODE}" != "ondevice" ]] && [[ "${BASE_MINIMAL}" == "true" ]]; then
   pkgToRemove="git libllvmkk build-essential libtool autotools-dev automake pkg-config gcc gcc-6 libgcc-6-dev
   alsa-utils* autoconf* bc* bison* bridge-utils* btrfs-tools* bwm-ng* cmake* command-not-found* console-setup*
-  console-setup-linux* crda* dconf-gsettings-backend* dconf-service* debconf-utils* device-tree-compiler* dialog* dirmngr* 
-  dnsutils* dosfstools* ethtool* evtest* f2fs-tools* f3* fancontrol* figlet* fio* flex* fping* glib-networking* glib-networking-services* 
-  gnome-icon-theme* gnupg2* gsettings-desktop-schemas* gtk-update-icon-cache* haveged* hdparm* hostapd* html2text* ifenslave* iotop* 
-  iperf3* iputils-arping* iw* kbd* libatk1.0-0* libcroco3* libcups2* libdbus-glib-1-2* libgdk-pixbuf2.0-0* libglade2-0* libnl-3-dev* 
-  libpango-1.0-0* libpolkit-agent-1-0* libpolkit-backend-1-0* libpolkit-gobject-1-0* libpython-stdlib* libpython2.7-stdlib* libssl-dev* 
-  man-db* ncurses-term* psmisc* pv* python-avahi* python-pip* python2.7-minimal screen* shared-mime-info* 
+  console-setup-linux* crda* dconf-gsettings-backend* dconf-service* debconf-utils* device-tree-compiler* dialog* dirmngr*
+  dnsutils* dosfstools* ethtool* evtest* f2fs-tools* f3* fancontrol* figlet* fio* flex* fping* glib-networking* glib-networking-services*
+  gnome-icon-theme* gnupg2* gsettings-desktop-schemas* gtk-update-icon-cache* haveged* hdparm* hostapd* html2text* ifenslave* iotop*
+  iperf3* iputils-arping* iw* kbd* libatk1.0-0* libcroco3* libcups2* libdbus-glib-1-2* libgdk-pixbuf2.0-0* libglade2-0* libnl-3-dev*
+  libpango-1.0-0* libpolkit-agent-1-0* libpolkit-backend-1-0* libpolkit-gobject-1-0* libpython-stdlib* libpython2.7-stdlib* libssl-dev*
+  man-db* ncurses-term* psmisc* pv* python-avahi* python-pip* python2.7-minimal screen* shared-mime-info*
   unattended-upgrades* unicode-data* unzip* vim* wireless-regdb* wireless-tools* wpasupplicant* "
 
   for pkg in $pkgToRemove
@@ -297,9 +297,9 @@ fi
 # REDIS & CONFIGURATION MGMT ---------------------------------------------------
 
 ## create data directory
-## standard build links from /data to /data_source on first boot, but 
+## standard build links from /data to /data_source on first boot, but
 ## Mender build mounts /data as own partition, data needs to be copied on first boot
-## 
+##
 ## create symlink for all scripts to work, remove it at the end of build process
 mkdir -p /data_source/
 ln -sfn /data_source /data
@@ -443,7 +443,7 @@ ln -sf /opt/shift/scripts/bbb-systemctl.sh /usr/local/sbin/bbb-systemctl.sh
 # TOR --------------------------------------------------------------------------
 curl --retry 5 https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --import
 gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
-if ! grep -q "deb.torproject.org" /etc/apt/sources.list; then 
+if ! grep -q "deb.torproject.org" /etc/apt/sources.list; then
   echo "deb https://deb.torproject.org/torproject.org ${BASE_DISTRIBUTION} main" >> /etc/apt/sources.list
 fi
 
@@ -520,7 +520,7 @@ else
   ln -sf /usr/bin/lightningd /usr/local/bin/lightningd
 
   redis-cli SET lightningd:version "${LIGHTNING_VERSION_BIN}"
-  
+
 fi
 
 mkdir -p /etc/lightningd/
@@ -701,7 +701,7 @@ EOF
   if [[ "${BASE_DASHBOARD_HDMI_ENABLED}" == "true" ]]; then
     /opt/shift/scripts/bbb-config.sh enable dashboard_hdmi
   fi
-  
+
 fi
 
 # NETWORK ----------------------------------------------------------------------
