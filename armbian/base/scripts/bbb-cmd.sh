@@ -80,6 +80,7 @@ fi
 MODULE="${1:-}"
 COMMAND="${2:-}"
 ARG="${3:-}"
+ARG2="${4:-}"
 
 MODULE="$(tr '[:lower:]' '[:upper:]' <<< "${MODULE}")"
 COMMAND="$(tr '[:lower:]' '[:upper:]' <<< "${COMMAND}")"
@@ -506,8 +507,8 @@ case "${MODULE}" in
 
     PRESYNC)
         # check and mount external drive
-        if ! lsblk | grep -q "${ARG}" || [ -z "${ARG}" ]; then
-            echo "ERR: external drive partition not found (specify e.g. 'sda1')"
+        if ! lsblk -o NAME,TYPE -abrnp -e 1,7,31,179,252 | grep part | grep -q "${ARG} " || [ -z "${ARG}" ]; then
+            echo "ERR: external drive partition not found (specify e.g. '/dev/sda1')"
             errorExit PRESYNC_EXTERNAL_DRIVE_NOT_FOUND
         fi
 
@@ -515,7 +516,7 @@ case "${MODULE}" in
         if mountpoint /mnt/ext -q; then
             umount /mnt/ext
         fi
-        mount "/dev/${ARG}" /mnt/ext
+        mount "${ARG}" /mnt/ext
 
         # stop bitcoin services
         systemctl stop bitcoind
@@ -524,6 +525,7 @@ case "${MODULE}" in
 
         case "${COMMAND}" in
             # create snapshot of blockchain data
+            # bbb-cmd.sh presync create /dev/sdb1
             CREATE)
                 checkMockMode
 
@@ -539,7 +541,7 @@ case "${MODULE}" in
                 fi
 
                 tar cvfW /mnt/ext/bbb-presync-ssd-"$(date '+%Y%m%d-%H%M')".tar \
-                    -C /mnt/ssd/bitcoin/.bitcoin \
+                    -C /mnt/ssd/ \
                     bitcoin/.bitcoin/blocks \
                     bitcoin/.bitcoin/chainstate \
                     --exclude='IDENTITY' \
@@ -552,20 +554,24 @@ case "${MODULE}" in
                 ls -lh /mnt/ssd/bbb-presync*
                 ;;
 
+            # restore snapshot of blockchain data
+            # bbb-cmd.sh presync restore /dev/sdb1 /mnt/ext/bbb-presync-ssd-20191126-2248.tar
             RESTORE)
                 checkMockMode
 
-                filecount=$(find /mnt/ext -name 'bbb-presync*' | wc -l)
-                if [[ ${filecount} -ne 1 ]]; then
-                    echo "ERR: exactly one file starting with 'bbb-presync' expected at /mnt/ext"
-                    errorExit PRESYNC_NO_UNIQUE_ARCHIVE_FOUND
+                echo "${ARG2}"
+                ls -la "${ARG2}"
+
+                if [[ ! -f ${ARG2} ]]; then
+                    echo "ERR: file ${ARG2} not found"
+                    errorExit PRESYNC_RESTORE_ARCHIVE_NOT_FOUND
                 fi
 
-                rm -rf /mnt/ssd/bitcoin/.bitcoin/blocks/*
-                rm -rf /mnt/ssd/bitcoin/.bitcoin/chainstate/*
-                rm -rf /mnt/ssd/electrs/db/mainnet
+                # rm -rf /mnt/ssd/bitcoin/.bitcoin/blocks/*
+                # rm -rf /mnt/ssd/bitcoin/.bitcoin/chainstate/*
+                # rm -rf /mnt/ssd/electrs/db/mainnet
 
-                tar xvf /mnt/ext/bbb-presync-* -C /mnt/ssd
+                tar xvf "${ARG2}" -C /mnt/ssd
 
                 echo
                 echo "OK: Presync archive restored."
@@ -574,6 +580,9 @@ case "${MODULE}" in
             *)
                 echo "Invalid argument for module ${MODULE}: command ${COMMAND} unknown."
                 errorExit CMD_SCRIPT_INVALID_ARG
+
+            umount /mnt/ext
+
         esac
         ;;
 

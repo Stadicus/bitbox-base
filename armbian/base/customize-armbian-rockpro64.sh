@@ -326,6 +326,9 @@ mkdir -p /data_source/
 ln -sfn /data_source /data
 touch /data/.datadir_set_up
 
+# import presync authorization token, will be deleted after presync or on initial setup
+cp /opt/shift/config/signatures/presync-token-hashes /data_source
+
 ## install Redis
 apt install -y --no-install-recommends redis
 mkdir -p /data/redis/
@@ -422,6 +425,8 @@ ln -sfn /mnt/ssd/system/journal /var/log/journal
 ## configure mender artifact verification key
 mkdir -p /etc/mender
 generateConfig mender.conf.template # -->  /etc/mender/mender.conf
+
+
 
 ## configure swap file (disable Armbian zram, configure custom swapfile on ssd)
 if [[ -f /etc/default/armbian-zram-config ]] || [[ "${BASE_BUILDMODE}" != "ondevice" ]]; then
