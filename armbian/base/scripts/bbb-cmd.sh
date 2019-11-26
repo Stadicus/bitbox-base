@@ -18,6 +18,7 @@ possible commands:
   restore       <sysconfig|hsm_secret>
   reset         <auth|config|image|ssd>
   mender-update <install|commit>
+  presync       <create|restore>
 
 "
 }
@@ -502,6 +503,80 @@ case "${MODULE}" in
                 errorExit CMD_SCRIPT_INVALID_ARG
         esac
         ;;
+
+    PRESYNC)
+        # check and mount external drive
+        if ! lsblk | grep -q "${ARG}" || [ -z "${ARG}" ]; then
+            echo "ERR: external drive partition not found (specify e.g. 'sda1')"
+            errorExit PRESYNC_EXTERNAL_DRIVE_NOT_FOUND
+        fi
+
+        mkdir -p /mnt/ext
+        if mountpoint /mnt/ext -q; then
+            umount /mnt/ext
+        fi
+        mount "/dev/${ARG}" /mnt/ext
+
+        # stop bitcoin services
+        systemctl stop bitcoind
+        systemctl stop lightningd
+        systemctl stop electrs
+
+        case "${COMMAND}" in
+            # create snapshot of blockchain data
+            CREATE)
+                checkMockMode
+
+                if [ ! -d /mnt/ssd/bitcoin/.bitcoin ] || [ ! -d /mnt/ssd/electrs/db/mainnet ]; then
+                    echo "ERR: required directories not found (run with --help for additional details)" >&2
+                    errorExit PRESYNC_DIRECTORIES_NOT_FOUND
+                fi
+
+                freespace=$(df -k /mnt/ssd  | awk '/[0-9]%/{print $(NF-2)}')
+                if [[ ${freespace} -lt 400000000 ]]; then
+                    echo "ERR: not enough disk space, should at least have 400 GB" >&2
+                    errorExit PRESYNC_NOT_ENOUGH_DISKSPACE
+                fi
+
+                tar cvfW /mnt/ext/bbb-presync-ssd-"$(date '+%Y%m%d-%H%M')".tar \
+                    -C /mnt/ssd/bitcoin/.bitcoin \
+                    bitcoin/.bitcoin/blocks \
+                    bitcoin/.bitcoin/chainstate \
+                    --exclude='IDENTITY' \
+                    --exclude='LOG*' \
+                    --exclude='*.log' \
+                    electrs/db/mainnet
+
+                echo
+                echo "OK: Presync archive created."
+                ls -lh /mnt/ssd/bbb-presync*
+                ;;
+
+            RESTORE)
+                checkMockMode
+
+                filecount=$(find /mnt/ext -name 'bbb-presync*' | wc -l)
+                if [[ ${filecount} -ne 1 ]]; then
+                    echo "ERR: exactly one file starting with 'bbb-presync' expected at /mnt/ext"
+                    errorExit PRESYNC_NO_UNIQUE_ARCHIVE_FOUND
+                fi
+
+                rm -rf /mnt/ssd/bitcoin/.bitcoin/blocks/*
+                rm -rf /mnt/ssd/bitcoin/.bitcoin/chainstate/*
+                rm -rf /mnt/ssd/electrs/db/mainnet
+
+                tar xvf /mnt/ext/bbb-presync-* -C /mnt/ssd
+
+                echo
+                echo "OK: Presync archive restored."
+                ;;
+
+            *)
+                echo "Invalid argument for module ${MODULE}: command ${COMMAND} unknown."
+                errorExit CMD_SCRIPT_INVALID_ARG
+        esac
+        ;;
+
 
     *)
         echo "Invalid argument: module ${MODULE} unknown."
