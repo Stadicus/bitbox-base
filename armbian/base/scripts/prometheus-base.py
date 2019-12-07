@@ -27,6 +27,11 @@ BASE_SYSTEMD_ELECTRS = Gauge("base_systemd_electrs", "Systemd unit status for El
 BASE_SYSTEMD_LIGHTNINGD = Gauge("base_systemd_lightningd", "Systemd unit status for c-lightning")
 BASE_SYSTEMD_PROMETHEUS = Gauge("base_systemd_prometheus", "Systemd unit status for Prometheus")
 BASE_SYSTEMD_GRAFANA = Gauge("base_systemd_grafana", "Systemd unit status for Grafana")
+BASE_SYSTEMD_REDIS = Gauge("base_systemd_redis", "Systemd unit status for Redis")
+BASE_SYSTEMD_NGINX = Gauge("base_systemd_nginx", "Systemd unit status for NGINX")
+BASE_SYSTEMD_BBBMIDDLEWARE = Gauge("base_systemd_bbbmiddleware", "Systemd unit status for bbbmiddleware")
+BASE_SYSTEMD_BBBSUPERVISOR = Gauge("base_systemd_bbbsupervisor", "Systemd unit status for bbbsupervisor")
+BASE_SYSTEMD_BBBFANCONTROL = Gauge("base_systemd_bbbfancontrol", "Systemd unit status for bbbfancontrol")
 
 r = redis.Redis(
     host='127.0.0.1',
@@ -91,6 +96,11 @@ def main():
         BASE_SYSTEMD_LIGHTNINGD.set(int(getSystemdStatus("lightningd")))
         BASE_SYSTEMD_PROMETHEUS.set(int(getSystemdStatus("prometheus")))
         BASE_SYSTEMD_GRAFANA.set(int(getSystemdStatus("grafana-server")))
+        BASE_SYSTEMD_REDIS.set(int(getSystemdStatus("redis")))
+        BASE_SYSTEMD_NGINX.set(int(getSystemdStatus("nginx")))
+        BASE_SYSTEMD_BBBMIDDLEWARE.set(int(getSystemdStatus("bbbmiddleware")))
+        BASE_SYSTEMD_BBBSUPERVISOR.set(int(getSystemdStatus("bbbsupervisor")))
+        BASE_SYSTEMD_BBBFANCONTROL.set(int(getSystemdStatus("bbbfancontrol")))
 
         try:
             BASE_CPU_TEMP.set(readFile("/sys/class/thermal/thermal_zone0/temp"))
