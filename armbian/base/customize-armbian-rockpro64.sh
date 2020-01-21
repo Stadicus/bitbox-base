@@ -324,7 +324,7 @@ pip3 install redis
 pip3 install pylightning
 
 # debug
-apt install -y --no-install-recommends tmux unzip
+apt install -y --no-install-recommends tmux unzip bash-completion
 
 if [[ "${BASE_DISTRIBUTION}" == "bionic" ]]; then
     apt install -y --no-install-recommends overlayroot
