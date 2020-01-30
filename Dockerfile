@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     ca-certificates
 WORKDIR /go/src/github.com/digitalbitbox/bitbox-base
-RUN mkdir -p bin/go/
+RUN mkdir -p bin/go/amd64
+RUN mkdir -p bin/go/armv7
+RUN mkdir -p bin/go/aarch64
 
 # Build the middleware
 FROM bitbox-base as middleware-builder

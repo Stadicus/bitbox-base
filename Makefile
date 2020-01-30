@@ -28,7 +28,7 @@ docker-build-go: dockerinit
 	       --rm \
 	       --tty \
 	       -v $(REPO_ROOT)/bin/go:/opt/build_host \
-	  digitalbitbox/bitbox-base bash -c "cp -f /opt/build/* /opt/build_host"
+	  digitalbitbox/bitbox-base bash -c "cp -rf /opt/build/* /opt/build_host"
 
 # build Armbian disk image
 # see configuration: armbian/base/build/build.conf

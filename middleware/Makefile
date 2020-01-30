@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := aarch64
+.DEFAULT_GOAL := multiarch
 REPO_ROOT=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
 SHELL:=/bin/bash
 RPCPORT:=18443
@@ -24,9 +24,13 @@ native: check-go-env ci
 build: generate
 	go install $(REPO_ROOT)/middleware/cmd/middleware
 
-aarch64: check-go-env ci
+multiarch: check-go-env ci
+	GOARCH=amd64 go build $(REPO_ROOT)/middleware/cmd/middleware
+	cp $(REPO_ROOT)/middleware/middleware $(REPO_ROOT)/bin/go/amd64
+	GOARCH=arm go build $(REPO_ROOT)/middleware/cmd/middleware
+	cp $(REPO_ROOT)/middleware/middleware $(REPO_ROOT)/bin/go/armv7
 	GOARCH=arm64 go build $(REPO_ROOT)/middleware/cmd/middleware
-	cp $(REPO_ROOT)/middleware/middleware $(REPO_ROOT)/bin/go/bbbmiddleware
+	cp $(REPO_ROOT)/middleware/middleware $(REPO_ROOT)/bin/go/aarch64
 
 regtest-up:
 	cd $(REPO_ROOT)/middleware/integration_test ;\

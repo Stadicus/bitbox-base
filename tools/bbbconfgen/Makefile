@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := aarch64
+.DEFAULT_GOAL := multiarch
 REPO_ROOT=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/../..
 
 check-go-env:
@@ -8,6 +8,10 @@ check-go-env:
 native: check-go-env
 	go install $(REPO_ROOT)/tools/bbbconfgen
 
-aarch64: check-go-env
+multiarch: check-go-env
+	GOARCH=amd64 go build $(REPO_ROOT)/tools/bbbconfgen
+	cp $(REPO_ROOT)/tools/bbbconfgen/bbbconfgen $(REPO_ROOT)/bin/go/amd64
+	GOARCH=arm go build $(REPO_ROOT)/tools/bbbconfgen
+	cp $(REPO_ROOT)/tools/bbbconfgen/bbbconfgen $(REPO_ROOT)/bin/go/armv7
 	GOARCH=arm64 go build $(REPO_ROOT)/tools/bbbconfgen
-	cp $(REPO_ROOT)/tools/bbbconfgen/bbbconfgen $(REPO_ROOT)/bin/go/
+	cp $(REPO_ROOT)/tools/bbbconfgen/bbbconfgen $(REPO_ROOT)/bin/go/aarch64
