@@ -40,7 +40,7 @@ set -e
 
 BITCOIN_VERSION="0.18.1"
 LIGHTNING_VERSION="0.8.0"
-ELECTRS_VERSION="0.7.0"
+ELECTRS_VERSION="0.8.2"
 BIN_DEPS_TAG='0.0.5'
 
 PROMETHEUS_VERSION="2.11.1"
@@ -84,6 +84,7 @@ CONFIGURATION:
 
 ================================================================================
 BUILD OPTIONS:
+    ARM ARCHITECTURE:   ${BASE_ARM_ARCH}
     BUILD MODE:         ${BASE_BUILDMODE}
     LINUX DISTRIBUTION: ${BASE_DISTRIBUTION}
     MINIMAL IMAGE:      ${BASE_MINIMAL}
@@ -158,6 +159,7 @@ BASE_VERSION=$(head -n1 /opt/shift/config/version_bbb)
 HSM_VERSION=$(head -n1 /opt/shift/config/version_hsm)
 
 BASE_BUILDMODE=${1:-"armbian-build"}
+BASE_ARM_ARCH="aarch64"
 
 # Source configuration to read BASE_PRODUCTION_IMAGE
 BASE_PRODUCTION_IMAGE="true"
@@ -564,12 +566,8 @@ importFile "/etc/systemd/system/lightningd.service"
 mkdir -p /usr/local/src/electrs/
 cd /usr/local/src/electrs/
 ## temporary storage of 'electrs' until official binary releases are available
-curl --retry 5 -SLO https://github.com/digitalbitbox/bitbox-base-deps/releases/download/${BIN_DEPS_TAG}/electrs-${ELECTRS_VERSION}-aarch64-linux-gnu.tar.gz
-if ! echo "77343603d763d5edf31269984551a7aa092afe23127d11b4e6e491522cc029e5  electrs-${ELECTRS_VERSION}-aarch64-linux-gnu.tar.gz" | sha256sum -c -; then
-  echo "sha256sum for precompiled 'electrs' failed" >&2
-  exit 1
-fi
-tar -xzf electrs-${ELECTRS_VERSION}-aarch64-linux-gnu.tar.gz -C /usr/bin
+curl --retry 5 -SLO https://github.com/digitalbitbox/bitbox-base-deps/releases/download/${BIN_DEPS_TAG}/electrs-${ELECTRS_VERSION}-${BASE_ARM_ARCH}-linux.tar.gz
+tar -xzf electrs-${ELECTRS_VERSION}-${BASE_ARM_ARCH}-linux.tar.gz -C /usr/bin
 chmod +x /usr/bin/electrs
 
 mkdir -p /etc/electrs/

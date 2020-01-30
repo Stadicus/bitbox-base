@@ -67,11 +67,14 @@ SET lightningd:log-level debug
 SET lightningd:plugin:1 /opt/shift/scripts/prometheus-lightningd.py
 
 SET electrs:version xxx
+SET electrs:network bitcoin
 SET electrs:clearnet 1
 SET electrs:db_dir /mnt/ssd/electrs/db
 SET electrs:daemon_dir /mnt/ssd/bitcoin/.bitcoin
+SET electrs:http_addr 127.0.0.1:50001
 SET electrs:monitoring_addr 127.0.0.1:4224
-SET electrs:verbosity vvvv
+SET electrs:txid_limit 1000
+SET electrs:verbosity 4
 SET electrs:rust_backtrace 1
 
 SET grafana:server:http_addr 127.0.0.1
