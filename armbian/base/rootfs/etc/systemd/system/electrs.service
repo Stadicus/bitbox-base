@@ -7,15 +7,8 @@ After=multi-user.target bitcoind.service
 # Service execution
 ###################
 
-EnvironmentFile=/etc/electrs/electrs.conf
 ExecStartPre=+/opt/shift/scripts/systemd-electrs-startpre.sh
-ExecStart=/usr/bin/electrs \
-    --network ${NETWORK} \
-    --db-dir ${DB_DIR} \
-    --daemon-dir ${DAEMON_DIR} \
-    --cookie "${RPCUSER}:${RPCPASSWORD}" \
-    --monitoring-addr ${MONITORING_ADDR} \
-    -${VERBOSITY}
+ExecStart=/usr/bin/electrs --conf /etc/electrs/electrs.conf
 
 # Process management
 ####################
@@ -48,7 +41,7 @@ PrivateTmp=true
 ProtectSystem=full
 
 # Deny access to /home, /root and /run/user
-ProtectHome=true
+#ProtectHome=true
 
 # Disallow the process and all of its children to gain
 # new privileges through execve().

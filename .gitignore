@@ -35,6 +35,8 @@ tools/bbbconfgen/test/test-output.conf
 docs/.jekyll-cache/*
 
 # Ignore the binary build outputs (except READMEs)
+/bin/armv7
+/bin/aarch64
 /bin/go/*
 !/bin/go/README.md
 /bin/img-mender/*
