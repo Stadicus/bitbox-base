@@ -49,12 +49,15 @@ case ${ACTION} in
 
 		mkdir -p armbian-build/output/
 		mkdir -p armbian-build/userpatches/overlay/bin/go
-		cp -a  base/customize-image.sh armbian-build/userpatches/		# copy customize script to standard Armbian build hook
+		cp -a  base/customize-image.sh armbian-build/userpatches/			# copy customize script to standard Armbian build hook
 		cp -aR base/* armbian-build/userpatches/overlay/					# copy scripts and configuration items to overlay
-		cp -aR ../bin/go/* armbian-build/userpatches/overlay/bin/go			# copy additional software binaries to overlay
+		cp -aR ../bin/go/armv7/* armbian-build/userpatches/overlay/bin/go	# copy additional software binaries to overlay				TODO: make ARM_ARCH dynamic
 
+		# To build for a different board, call the `make` command after setting the environment variable BOARD, e.g.
+		#   $ sudo BOARD=odroidxu4 make update-all
 		BOARD=${BOARD:-rockpro64}
-		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_DESKTOP=no RELEASE=bionic BRANCH=legacy WIREGUARD=no PROGRESS_LOG_TO_FILE=yes"
+
+		BUILD_ARGS="docker BOARD=${BOARD} KERNEL_ONLY=no KERNEL_CONFIGURE=no BUILD_MINIMAL=yes BUILD_DESKTOP=no RELEASE=bionic BRANCH=legacy WIREGUARD=no EXTRAWIFI=no PROGRESS_LOG_TO_FILE=yes"
 		if [ "${ACTION}" == "update" ]; then
 			BUILD_ARGS="${BUILD_ARGS} CLEAN_LEVEL=oldcache"
 		fi

@@ -122,7 +122,7 @@ chown -R redis:system /data/redis/
 # Networking
 # ------------------------------------------------------------------------------
 # make sure wired interface eth0 is used if present (set metric to 10, wifi will have > 1000)
-ifmetric eth0 10
+ifmetric eth0 10 || true
 
 timedatectl set-ntp true
 
@@ -137,6 +137,7 @@ fi
 
 # check for SSH host certificate and create it if missing
 if [ ! -f /data/ssh/ssh_host_ecdsa_key ]; then
+    mkdir -p /data/ssh/
     ssh-keygen -f /data/ssh/ssh_host_ecdsa_key -N '' -t ecdsa
 fi
 

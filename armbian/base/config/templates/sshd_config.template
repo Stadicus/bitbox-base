@@ -8,6 +8,7 @@
 
 # Server host key
 HostKey                         {{ base:sshd:hostkey #default: /data/ssh/ssh_host_ecdsa_key }}
+HostKey                         /etc/ssh/ssh_host_ecdsa_key
 
 # Authentication
 PubkeyAuthentication            yes

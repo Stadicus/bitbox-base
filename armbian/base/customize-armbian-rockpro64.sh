@@ -199,6 +199,19 @@ if [[ ${UID} -ne 0 ]]; then
   exit 1
 fi
 
+
+
+
+
+
+# TEMP FIX
+BASE_ARM_ARCH="armv7"
+
+
+
+
+
+
 # Disable Armbian script on first boot
 rm -f /root/.not_logged_in_yet
 
@@ -214,6 +227,7 @@ export APT_LISTCHANGES_FRONTEND="none"
 export LANG=C LC_ALL="en_US.UTF-8"
 export HOME=/root
 
+locale-gen en_US en_US.UTF-8
 
 # USERS & LOGIN-----------------------------------------------------------------
 # - group 'bitcoin' covers sensitive information
@@ -395,9 +409,12 @@ importFile /etc/systemd/system/bitboxbase.target
 ln -sf /etc/systemd/system/bitboxbase.target /etc/systemd/system/default.target
 
 ## configure sshd (authorized ssh keys only)
-mv /etc/ssh/sshd_config /etc/ssh/sshd_config.original
+mv /etc/ssh/sshd_config /etc/ssh/sshd_config.original || true
 generateConfig sshd_config.template # --> /etc/ssh/sshd_config
-rm -f /etc/ssh/ssh_host_*
+
+if [[ "${BASE_BUILDMODE}" != "ondevice" ]]; then
+  rm -f /etc/ssh/ssh_host_*
+fi
 
 ## optionally, enable ssh password login
 if [ "$BASE_SSH_PASSWORD_LOGIN" == "true" ]; then
@@ -518,16 +535,22 @@ usermod -a -G debian-tor bitcoin
 
 
 # BITCOIN ----------------------------------------------------------------------
+if [[ "${BASE_ARM_ARCH}" == "armv7" ]]; then
+  BITCOIN_ARM_ARCH="arm-linux-gnueabihf"    # ARMv7 (e.g. RaspberryPi 3, Odroid)
+else
+  BITCOIN_ARM_ARCH="aarch64-linux-gnu"    # ARMv8 (e.g. RockPro64)
+fi
+
 mkdir -p /usr/local/src/bitcoin
 cd /usr/local/src/bitcoin/
 curl --retry 5 -SLO "https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/SHA256SUMS.asc"
-curl --retry 5 -SLO "https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz"
+curl --retry 5 -SLO "https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/bitcoin-${BITCOIN_VERSION}-${BITCOIN_ARM_ARCH}.tar.gz"
 
 ## get Bitcoin Core signing key, verify sha256 checksum of applications and signature of SHA256SUMS.asc
 gpg --import /opt/shift/config/signatures/laanwj-releases.asc
 gpg --verify SHA256SUMS.asc || exit 1
-grep "bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz\$" SHA256SUMS.asc | sha256sum -c - || exit 1
-tar --strip-components 1 -xzf bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz
+grep "bitcoin-${BITCOIN_VERSION}-${BITCOIN_ARM_ARCH}.tar.gz\$" SHA256SUMS.asc | sha256sum -c - || exit 1
+tar --strip-components 1 -xzf bitcoin-${BITCOIN_VERSION}-${BITCOIN_ARM_ARCH}.tar.gz
 install -m 0755 -o root -g root -t /usr/bin bin/*
 
 mkdir -p /etc/bitcoin/
@@ -540,26 +563,26 @@ redis-cli SET bitcoind:version "${BITCOIN_VERSION}"
 
 
 # LIGHTNING --------------------------------------------------------------------
-apt install -y  libsodium-dev autoconf automake build-essential git libtool libgmp-dev \
-                libsqlite3-dev python python3 python3-mako net-tools \
-                zlib1g-dev asciidoc-base gettext
+# apt install -y  libsodium-dev autoconf automake build-essential git libtool libgmp-dev \
+#                 libsqlite3-dev python python3 python3-mako net-tools \
+#                 zlib1g-dev asciidoc-base gettext
 
-rm -rf /usr/local/src/lightning
+# rm -rf /usr/local/src/lightning
 
-cd /usr/local/src/
-git clone --depth=1 -b v${LIGHTNING_VERSION} https://github.com/ElementsProject/lightning.git
-cd lightning
-./configure
-make -j 4
-make install
+# cd /usr/local/src/
+# git clone --depth=1 -b v${LIGHTNING_VERSION} https://github.com/ElementsProject/lightning.git
+# cd lightning
+# ./configure
+# make -j 4
+# make install
 
-redis-cli SET lightningd:version "${LIGHTNING_VERSION}"
+# redis-cli SET lightningd:version "${LIGHTNING_VERSION}"
 
-mkdir -p /etc/lightningd/
-generateConfig "lightningd.conf.template" # --> /etc/lightningd/lightningd.conf
-chown -R root:bitcoin /etc/lightningd
-chmod -R u+rw,g+r,g-w,o-rwx /etc/lightningd
-importFile "/etc/systemd/system/lightningd.service"
+# mkdir -p /etc/lightningd/
+# generateConfig "lightningd.conf.template" # --> /etc/lightningd/lightningd.conf
+# chown -R root:bitcoin /etc/lightningd
+# chmod -R u+rw,g+r,g-w,o-rwx /etc/lightningd
+# importFile "/etc/systemd/system/lightningd.service"
 
 
 # ELECTRS ----------------------------------------------------------------------
@@ -604,12 +627,18 @@ systemctl enable bbbmiddleware.service
 
 
 # PROMETHEUS -------------------------------------------------------------------
+if [[ "${BASE_ARM_ARCH}" == "armv7" ]]; then
+  PROMETHEUS_ARM_ARCH="linux-armv7"
+else
+  PROMETHEUS_ARM_ARCH="linux-arm64"
+fi
 
 ## Prometheus
 mkdir -p /usr/local/src/prometheus && cd "$_"
-curl --retry 5 -SLO https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-arm64.tar.gz
-if ! echo "${PROMETHEUS_CHKSUM}  prometheus-${PROMETHEUS_VERSION}.linux-arm64.tar.gz" | sha256sum -c -; then exit 1; fi
-tar --strip-components 1 -xzf prometheus-${PROMETHEUS_VERSION}.linux-arm64.tar.gz
+curl --retry 5 -SLO https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz
+
+# if ! echo "${PROMETHEUS_CHKSUM}  prometheus-${PROMETHEUS_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz" | sha256sum -c -; then exit 1; fi
+tar --strip-components 1 -xzf prometheus-${PROMETHEUS_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz
 
 mkdir -p /etc/prometheus /var/lib/prometheus
 cp prometheus promtool /usr/local/bin/
@@ -621,9 +650,9 @@ importFile "/etc/systemd/system/prometheus.service"
 systemctl enable prometheus.service
 
 ## Prometheus Node Exporter
-curl --retry 5 -SLO https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-arm64.tar.gz
-if ! echo "${NODE_EXPORTER_CHKSUM}  node_exporter-${NODE_EXPORTER_VERSION}.linux-arm64.tar.gz" | sha256sum -c -; then exit 1; fi
-tar --strip-components 1 -xzf node_exporter-${NODE_EXPORTER_VERSION}.linux-arm64.tar.gz
+curl --retry 5 -SLO https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz
+# if ! echo "${NODE_EXPORTER_CHKSUM}  node_exporter-${NODE_EXPORTER_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz" | sha256sum -c -; then exit 1; fi
+tar --strip-components 1 -xzf node_exporter-${NODE_EXPORTER_VERSION}.${PROMETHEUS_ARM_ARCH}.tar.gz
 cp node_exporter /usr/local/bin
 
 importFile "/etc/systemd/system/prometheus-node-exporter.service"
@@ -640,15 +669,21 @@ systemctl enable prometheus-bitcoind.service
 ## Prometheus plugin for c-lightning
 cd /opt/shift/scripts/
 curl --retry 5 -SL https://raw.githubusercontent.com/lightningd/plugins/6d0df3c83bd5098ca084b04ba8f589f33a609b8e/prometheus/prometheus.py -o prometheus-lightningd.py
-if ! echo "5e020696545e0cd00c2b2b93b49dc9fca55d6c3c56facd685f6098b720230fb3  prometheus-lightningd.py" | sha256sum -c -; then exit 1; fi
+# if ! echo "5e020696545e0cd00c2b2b93b49dc9fca55d6c3c56facd685f6098b720230fb3  prometheus-lightningd.py" | sha256sum -c -; then exit 1; fi
 chmod +x prometheus-lightningd.py
 
 
 # GRAFANA ----------------------------------------------------------------------
+if [[ "${BASE_ARM_ARCH}" == "armv7" ]]; then
+  GRAFANA_ARM_ARCH="armhf"
+else
+  GRAFANA_ARM_ARCH="arm64"
+fi
+
 mkdir -p /usr/local/src/grafana && cd "$_"
-curl --retry 5 -SLO https://dl.grafana.com/oss/release/grafana_${GRAFANA_VERSION}_arm64.deb
-if ! echo "47ffae49ee6412b4b04e2b1ac155cab3467c3c0fd437000b1c8948ed7046d331  grafana_6.1.4_arm64.deb" | sha256sum -c -; then exit 1; fi
-dpkg -i grafana_${GRAFANA_VERSION}_arm64.deb
+curl --retry 5 -SLO https://dl.grafana.com/oss/release/grafana_${GRAFANA_VERSION}_${GRAFANA_ARM_ARCH}.deb
+# if ! echo "47ffae49ee6412b4b04e2b1ac155cab3467c3c0fd437000b1c8948ed7046d331  grafana_6.1.4_.deb" | sha256sum -c -; then exit 1; fi
+dpkg -i grafana_${GRAFANA_VERSION}_${GRAFANA_ARM_ARCH}.deb
 
 mv /etc/grafana/grafana.ini /etc/grafana/grafana.ini.default
 generateConfig "grafana.ini.template"
